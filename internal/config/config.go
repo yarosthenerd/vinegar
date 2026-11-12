@@ -120,10 +120,11 @@ func Default() (cfg *Config) {
 		},
 	}
 	// No need to select if there is only a single GPU, and to
-	// prefer PRIME discrete behavior by default, on systems
-	// where the first GPU is a iGPU.
-	if len(sysinfo.Cards) >= 2 && sysinfo.Cards[0].Embedded {
-		cfg.Studio.ForcedGpu = sysinfo.Cards[1].Addr()
+	// prefer PRIME discrete behavior by default on hybrid systems.
+	// This must not depend on the order of the cards, as it changes
+	// between boots.
+	if gpu := sysinfo.PreferredDiscrete(sysinfo.Cards); gpu != nil {
+		cfg.Studio.ForcedGpu = gpu.Addr()
 	}
 
 	// Default to use the VinegarHQ Kombucha builds to be

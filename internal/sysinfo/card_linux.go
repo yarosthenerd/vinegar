@@ -25,6 +25,7 @@ func getCards() (cs []Card) {
 
 		vendor, _ := os.ReadFile(filepath.Join(dev, "vendor"))
 		product, _ := os.ReadFile(filepath.Join(dev, "device"))
+		bootVGA, _ := os.ReadFile(filepath.Join(dev, "boot_vga"))
 
 		cs = append(cs, Card{
 			Index:     i,
@@ -32,6 +33,7 @@ func getCards() (cs []Card) {
 			Device:    dev,
 			Driver:    driver,
 			Embedded:  embedded(c),
+			BootVGA:   strings.TrimSpace(string(bootVGA)) == "1",
 			VendorID:  strings.TrimPrefix(strings.TrimSpace(string(vendor)), "0x"),
 			ProductID: strings.TrimPrefix(strings.TrimSpace(string(product)), "0x"),
 		})
