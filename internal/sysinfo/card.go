@@ -11,6 +11,7 @@ type Card struct {
 	Device    string // Path to the PCI device
 	Driver    string // Base driver name
 	Embedded  bool   // Integrated display
+	BootVGA   bool   // Used by the firmware to display at boot, the "default" GPU
 	VendorID  string
 	ProductID string
 

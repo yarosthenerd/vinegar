@@ -87,6 +87,8 @@ func (b *bootstrapper) run(args ...string) error {
 		return fmt.Errorf("setup: %w", err)
 	}
 
+	b.preflight()
+
 	return b.execute(args...)
 }
 
