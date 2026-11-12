@@ -24,6 +24,8 @@ func (b *bootstrapper) preflight() {
 		vram, ok := c.VRAM()
 		name := fmt.Sprintf("%s (%s)",
 			strings.TrimSpace(c.String()), c.Addr())
+		slog.Debug("Checking GPU memory", "gpu", name, "known", ok,
+			"free_mib", vram.Free>>20, "total_mib", vram.Total>>20)
 		problems = append(problems, preflight.GPUMemory(name, vram, ok))
 	}
 
