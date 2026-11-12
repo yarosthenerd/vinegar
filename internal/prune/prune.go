@@ -3,6 +3,7 @@
 package prune
 
 import (
+	"bytes"
 	"errors"
 	"io/fs"
 	"os"
@@ -159,4 +160,55 @@ entries:
 	}
 
 	return res, errors.Join(errs...)
+}
+
+// dxvkDLLs are the names of the DLLs of a DXVK release that Vinegar
+// installs next to Roblox Studio's executable.
+var dxvkDLLs = []string{"d3d8", "d3d9", "d3d10core", "d3d11", "dxgi"}
+
+// LocalDXVK removes the DXVK DLLs that were installed into dir, the
+// Roblox Studio installation, for when DXVK is no longer in use.
+//
+// Wine prefers a DLL next to the executable over its own, so leaving them
+// behind makes Studio keep using DXVK after another renderer was chosen.
+// A file is only removed if it is named like a DXVK DLL and contains the
+// DXVK signature, which keeps anything else that Studio ships intact.
+func LocalDXVK(dir string) (Result, error) {
+	var res Result
+	var errs []error
+
+	for _, name := range dxvkDLLs {
+		path := filepath.Join(dir, name+".dll")
+
+		b, err := os.ReadFile(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if !isDXVK(b) {
+			continue
+		}
+
+		if err := os.Remove(path); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				errs = append(errs, err)
+			}
+			continue
+		}
+		res.Files++
+		res.Bytes += int64(len(b))
+	}
+
+	return res, errors.Join(errs...)
+}
+
+// isDXVK reports whether the contents of a DLL carry the DXVK signature.
+// Some of its DLLs, such as d3d10core, only have it as the UTF-16 product
+// name in their version resource and nowhere as plain text.
+func isDXVK(dll []byte) bool {
+	return bytes.Contains(bytes.ToLower(dll), []byte("dxvk")) ||
+		bytes.Contains(dll, []byte("D\x00X\x00V\x00K\x00"))
 }

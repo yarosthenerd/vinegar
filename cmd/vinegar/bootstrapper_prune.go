@@ -41,3 +41,16 @@ func (b *bootstrapper) pruneWebViewInstallers() {
 			"files", res.Files, "freed", glib.FormatSizeForDisplay(res.Bytes))
 	}
 }
+
+// pruneLocalDXVK removes DXVK from the Studio installation, for when
+// another renderer is selected.
+func (b *bootstrapper) pruneLocalDXVK() {
+	res, err := prune.LocalDXVK(b.dir)
+	if err != nil {
+		slog.Warn("Failed to remove DXVK", "err", err)
+	}
+	if res.Files > 0 {
+		slog.Info("Removed DXVK, as it is not the selected renderer",
+			"files", res.Files)
+	}
+}
