@@ -165,3 +165,45 @@ func TestGlobBadPatternAndMissingDir(t *testing.T) {
 		t.Fatalf("got %+v, %v", res, err)
 	}
 }
+
+func TestLocalDXVK(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, content string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// What a DXVK release looks like.
+	write("d3d11.dll", "MZ....Game: \x00DXVK\x00v2.7\x00....")
+	write("dxgi.dll", "MZ....dxvk-native....")
+	write("d3d9.dll", "MZ....DXVK....")
+	// The signature only exists as UTF-16 in some real DXVK DLLs.
+	write("d3d8.dll", "MZ....D\x00X\x00V\x00K\x00....")
+	// Named like DXVK, but is something else: must survive.
+	write("d3d10core.dll", "MZ....a different library....")
+	// Contains the signature, but is not one of DXVK's names: must survive.
+	write("d3dcompiler_47.dll", "MZ....DXVK mentioned in passing....")
+	write("RobloxStudioBeta.exe", "MZ....")
+
+	res, err := LocalDXVK(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"RobloxStudioBeta.exe", "d3d10core.dll", "d3dcompiler_47.dll"}
+	if got := names(t, dir); !slices.Equal(got, want) {
+		t.Fatalf("kept %v, want %v", got, want)
+	}
+	if res.Files != 4 {
+		t.Fatalf("result %+v", res)
+	}
+
+	// Nothing left to remove, and a missing directory is fine.
+	if res, err := LocalDXVK(dir); err != nil || res.Files != 0 {
+		t.Fatalf("second run: %+v, %v", res, err)
+	}
+	if res, err := LocalDXVK(filepath.Join(dir, "missing")); err != nil || res.Files != 0 {
+		t.Fatalf("missing dir: %+v, %v", res, err)
+	}
+}

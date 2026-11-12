@@ -24,6 +24,9 @@ import (
 func (b *bootstrapper) setupDXVK() error {
 	version := b.cfg.Studio.DXVKVersion()
 	if version == "" {
+		// Wine prefers DLLs next to Studio's executable, so a DXVK that
+		// was installed earlier would stay in use otherwise.
+		b.pruneLocalDXVK()
 		return nil
 	}
 
