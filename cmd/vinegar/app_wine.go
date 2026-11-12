@@ -18,6 +18,7 @@ import (
 	"github.com/vinegarhq/vinegar/internal/gutil"
 	"github.com/vinegarhq/vinegar/internal/logging"
 	"github.com/vinegarhq/vinegar/internal/netutil"
+	"github.com/vinegarhq/vinegar/internal/regpatch"
 
 	. "github.com/pojntfx/go-gettext/pkg/i18n"
 )
@@ -53,6 +54,14 @@ chicken:
 		return false, nil
 	}
 
+	// Must happen before Wine boots, as winebus reads its options
+	// when it loads and opens the HID devices right away.
+	if err := a.applyHIDPolicy(); err != nil {
+		// Not fatal: Studio works without it, the only downside is that
+		// affected keyboards may glitch while Studio is running.
+		slog.Warn("Failed to restrict Wine's HID access", "err", err)
+	}
+
 	if err := a.pfx.Prepare(); err != nil {
 		return firstRun, err
 	}
@@ -86,6 +95,27 @@ chicken:
 	}
 
 	return true, nil
+}
+
+// applyHIDPolicy makes Wine's winebus driver skip the raw hidraw backend
+// (see [config.Studio.Hidraw]) by editing the prefix's registry on disk.
+// The Wineserver must not be running, as it would overwrite the change.
+//
+// A prefix that does not exist yet has no registry to edit; it is
+// handled the next time Studio is launched.
+func (a *app) applyHIDPolicy() error {
+	if a.cfg.Studio.Hidraw {
+		return nil
+	}
+
+	changed, err := regpatch.PatchFile(
+		filepath.Join(a.pfx.Dir(), "system.reg"),
+		`System\ControlSet001\Services\winebus`,
+		map[string]uint32{"DisableHidraw": 1})
+	if changed {
+		slog.Info("Disabled Wine's hidraw access")
+	}
+	return err
 }
 
 func (a *app) updateWine(needle string) error {

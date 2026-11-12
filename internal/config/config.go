@@ -51,6 +51,14 @@ type Studio struct {
 	DiscordRPC bool   `toml:"discord_rpc"`
 	GameMode   bool   `toml:"gamemode"`
 
+	// Allow Wine to talk to HID devices directly through /dev/hidraw.
+	// This is disabled by default: Wine opens every hidraw node it can
+	// see, including keyboards, and some firmware (such as ASUS N-KEY
+	// keyboards) crashes and resets over USB repeatedly when probed,
+	// making the keyboard unusable while Studio runs. Enable this only
+	// if a controller needs raw HID access.
+	Hidraw bool `toml:"hidraw"`
+
 	Env    map[string]string `toml:"env"`
 	FFlags rbxbin.FFlags     `toml:"fflags"`
 
