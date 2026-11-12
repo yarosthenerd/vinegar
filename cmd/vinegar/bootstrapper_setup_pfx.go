@@ -140,7 +140,7 @@ install:
 }
 
 func (b *bootstrapper) webViewInstaller() string {
-	// TODO: Clear old downloads here.
+	// Installers are removed by pruneWebViewInstallers after installation.
 	return filepath.Join(dirs.Cache, "webview-"+b.cfg.Studio.WebView+".exe")
 }
 

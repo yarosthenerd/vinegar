@@ -43,6 +43,8 @@ func (b *bootstrapper) setupExecute() error {
 		slog.Warn("Retrieving authenticated user failed", "err", err)
 	}
 
+	b.pruneStudioLogs()
+
 	if err := b.updateDeployment(); err != nil {
 		return err
 	}
@@ -80,6 +82,7 @@ func (b *bootstrapper) setupExecute() error {
 	if err := b.installWebView(webview); err != nil {
 		return fmt.Errorf("install webview: %w", err)
 	}
+	b.pruneWebViewInstallers()
 
 	// Currently, DXVK does not quite invoke any sort of application,
 	// giving the wineserver the persistent timeout until another program
