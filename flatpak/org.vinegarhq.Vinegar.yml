@@ -1,0 +1,51 @@
+# Flatpak manifest for building this fork from the local checkout.
+# Based on https://github.com/flathub/org.vinegarhq.Vinegar
+#
+# Go modules are vendored by the CI workflow (`go mod vendor`) before this is
+# built, because flatpak-builder has no network access during the build.
+app-id: org.vinegarhq.Vinegar
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.golang
+command: vinegar
+
+finish-args:
+  - --share=network
+  - --share=ipc
+
+  # https://github.com/flathub/flathub/issues/6171
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+
+  # Necessary for controller support
+  - --device=all
+
+  # Necessary for VMProtect to function.
+  - --allow=devel
+
+  # Discord Rich presence (other clients untested)
+  - --filesystem=xdg-run/app/com.discordapp.Discord:create
+
+  # Give access to Studio's screenshots and autosaves.
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-pictures
+
+  - --env=GST_PLUGIN_SYSTEM_PATH=/app/lib/gstreamer-1.0
+  - --env=PATH=/app/bin:/usr/bin:/usr/lib/extensions/vulkan/gamescope/bin
+
+modules:
+  - name: vinegar
+    buildsystem: simple
+    build-options:
+      env:
+        GOBIN: /app/bin
+        GOROOT: /usr/lib/sdk/golang
+        GOFLAGS: -mod=vendor
+    build-commands:
+      - make install GO=$GOROOT/bin/go PREFIX=/app
+    sources:
+      - type: dir
+        path: ..

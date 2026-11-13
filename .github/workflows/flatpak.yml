@@ -1,0 +1,45 @@
+name: Flatpak
+on:
+  # Build only (uploads the bundle as a workflow artifact).
+  workflow_dispatch:
+  # Tags like v1.9.4-fork.1 build the bundle and publish a GitHub Release.
+  push:
+    tags: ['v*-fork*']
+permissions:
+  contents: read
+jobs:
+  flatpak:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Vendor Go modules (flatpak-builder has no network)
+        run: go mod vendor
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: vinegar-fork.flatpak
+          manifest-path: flatpak/org.vinegarhq.Vinegar.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vinegar-fork-flatpak
+          path: vinegar-fork.flatpak
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: flatpak
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: vinegar-fork-flatpak
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: vinegar-fork.flatpak
+          generate_release_notes: true
